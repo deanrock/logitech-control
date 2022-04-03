@@ -1,0 +1,96 @@
+<html>
+
+<head>
+    <title>Logitech Control</title>
+    <link rel="stylesheet" href="https://unpkg.com/purecss@2.1.0/build/pure-min.css"
+        integrity="sha384-yHIFVG6ClnONEA5yB5DJXfW2/KC173DIQrYoZMEtBvGzmf0PKiGyNEqe9N6BNDBH" crossorigin="anonymous">
+    <style>
+        .button-success,
+        .button-error,
+        .button-warning,
+        .button-secondary {
+            color: white;
+            border-radius: 4px;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+        }
+
+        .button-success {
+            background: rgb(28, 184, 65);
+            /* this is a green */
+        }
+
+        .button-error {
+            background: rgb(202, 60, 60);
+            /* this is a maroon */
+        }
+
+        .button-warning {
+            background: rgb(223, 117, 20);
+            /* this is an orange */
+        }
+
+        .button-secondary {
+            background: rgb(66, 184, 221);
+            /* this is a light blue */
+        }
+    </style>
+    <script src="/reconnecting-websocket.js"></script>
+</head>
+
+<body>
+    <script type="text/javascript">
+        var socket = new ReconnectingWebSocket("ws://localhost:8000/ws", "echo");
+        function send(data) {
+            {
+                socket.send(JSON.stringify(data));
+            }
+        }
+        function action(name) {
+            send({
+                'action': name,
+            });
+        }
+        socket.onmessage = function (event) {
+            {
+                document.getElementById('result').innerHTML += event.data + '<br />';
+            }
+        }
+    </script>
+    <div class="pure-g">
+        <div class="pure-u-1-3">
+            <p></p>
+        </div>
+        <div class="pure-u-1-3">
+            <p></p>
+        </div>
+        <div class="pure-u-1-3">
+            <p><a class="pure-button" href="#" onclick="action('volume_up');return false">Volume Up</a>
+                <a class="pure-button" href="#" onclick="action('volume_down');return false">Volume Down</a>
+            </p>
+        </div>
+    </div>
+    <div class="pure-g">
+        <div class="pure-u-1-3">
+            <p></p>
+        </div>
+        <div class="pure-u-1-3">
+            <p></p>
+        </div>
+        <div class="pure-u-1-3">
+            <p>
+                <a class="button-success pure-button" href="#" onclick="action('turn_on');return false">On</a>
+                <a class="button-error pure-button" href="#" onclick="action('turn_off');return false">Off</a>
+            </p>
+        </div>
+    </div>
+    <p>
+    <form onsubmit="send(document.getElementById('msg').value); return false;">
+        <input type="text" id="msg" />
+        <button type="submit">Send</button>
+    </form>
+    </p>
+    <p>Received: </p>
+    <p id="result"></p>
+</body>
+
+</html>
