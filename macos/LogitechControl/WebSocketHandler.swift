@@ -25,7 +25,7 @@ class WebSocketHandler: NSObject, URLSessionWebSocketDelegate {
     @objc func connect() {
         let session = URLSession(configuration: .default, delegate: self, delegateQueue: OperationQueue())
         
-        self.socket = session.webSocketTask(with: URL(string: url)!, protocols: ["echo"])
+        self.socket = session.webSocketTask(with: URL(string: url)!)
         self.socket.resume()
         
         self.listen()

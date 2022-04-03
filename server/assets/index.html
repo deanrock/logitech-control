@@ -34,12 +34,12 @@
             /* this is a light blue */
         }
     </style>
-    <script src="/reconnecting-websocket.js"></script>
+    <script src="/assets/reconnecting-websocket.js"></script>
 </head>
 
 <body>
     <script type="text/javascript">
-        var socket = new ReconnectingWebSocket("ws://localhost:8000/ws", "echo");
+        var socket = new ReconnectingWebSocket("ws://localhost:8000/ws");
         function send(data) {
             {
                 socket.send(JSON.stringify(data));
@@ -92,5 +92,4 @@
     <p>Received: </p>
     <p id="result"></p>
 </body>
-
 </html>
