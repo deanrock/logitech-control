@@ -17,7 +17,7 @@ send([0x09])
 receive(1)
 */
 
-use serialport::{DataBits, Parity, SerialPort, StopBits};
+use serialport::{DataBits, Parity, SerialPort, StopBits, SerialPortInfo, UsbPortInfo};
 use std::{time::Duration};
 
 pub struct Status {
@@ -33,6 +33,19 @@ pub struct Serial {
     port: Box<dyn SerialPort>,
 }
 
+pub fn find_port() -> Option<String> {
+    for item in serialport::available_ports().unwrap() {
+        let SerialPortInfo { port_name, port_type } = item;
+        if let serialport::SerialPortType::UsbPort(UsbPortInfo { vid: _, pid: _, serial_number: _, manufacturer, product: _ }) = port_type {
+            if manufacturer == Some("FTDI".to_string()) {
+                return Some(port_name)
+            }
+        }
+    }
+
+    return None
+}
+
 fn connect(port: String) -> Box<dyn SerialPort> {
     serialport::new(port, 57_600)
         .parity(Parity::Odd)
@@ -44,9 +57,9 @@ fn connect(port: String) -> Box<dyn SerialPort> {
 }
 
 impl Serial {
-    pub fn new(port: &str) -> Serial {
+    pub fn new(port: String) -> Serial {
         Serial {
-            port: connect(port.to_string()),
+            port: connect(port),
         }
     }
 

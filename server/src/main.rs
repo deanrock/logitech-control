@@ -31,16 +31,18 @@ struct AppState {
     tx: broadcast::Sender<String>,
 }
 
-#[tokio::main]
-async fn main() {
-    let serial = Arc::new(Mutex::new(serial::Serial::new(
-        "/dev/tty.usbserial-A100JOB2",
-    )));
-    serial.clone().lock().unwrap().status();
+fn get_serial() -> Option<serial::Serial> {
+    if let Some(port) = serial::find_port() {
+        let mut serial = serial::Serial::new(port);
 
-    let (tx, _rx) = broadcast::channel(100);
-    let app_state = Arc::new(AppState { serial, tx });
+        serial.status();
+        return Some(serial);
+    }
 
+    return None;
+}
+
+async fn server(app_state: Arc<AppState>) {
     let app = Router::new()
         .nest(
             "/assets",
@@ -62,6 +64,18 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
+}
+
+#[tokio::main]
+async fn main() {
+    if let Some(serial) = get_serial() {
+        let serial = Arc::new(Mutex::new(serial));
+        let (tx, _rx) = broadcast::channel(100);
+        let app_state = Arc::new(AppState { serial, tx });
+        return server(app_state).await;
+    }
+
+    assert!(false, "Cannot find serial device!");
 }
 
 async fn handler_404() -> impl IntoResponse {
