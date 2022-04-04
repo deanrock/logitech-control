@@ -17,9 +17,11 @@ send([0x09])
 receive(1)
 */
 
+use serde::{Serialize, Deserialize};
 use serialport::{DataBits, Parity, SerialPort, StopBits};
 use std::{time::Duration};
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Status {
     main_volume: u8,
     input: u8,
@@ -52,12 +54,18 @@ impl Serial {
 
     pub fn read(&mut self, size: usize) -> Vec<u8> {
         let mut buf: Vec<u8> = vec![0; size];
-        let received = self.port.read(buf.as_mut_slice()).unwrap();
-        assert!(size == received, "{} == {}", size, received);
+        let mut start = 0;
+        while size > start {
+            let slice = buf.get_mut(start..size).unwrap();
+            let received = self.port.read(slice).unwrap();
+            start += received;
+        }
+
         return buf
     }
 
     pub fn write(&mut self, buf: &[u8]) {
+        println!("WRITE: {:?}", buf);
         let written = self.port.write(buf).unwrap();
         assert!(buf.len() == written)
     }
@@ -65,11 +73,15 @@ impl Serial {
     pub fn volume_up(&mut self) {
         let data = [0x08];
         self.write(&data);
+
+        self.read(1);
     }
 
     pub fn volume_down(&mut self) {
         let data = [0x09];
         self.write(&data);
+
+        self.read(1);
     }
 
     pub fn mute(&mut self) {
@@ -84,11 +96,15 @@ impl Serial {
     pub fn turn_on(&mut self) {
         let data = [0x11, 0x11, 0x14, 0x39, 0x38, 0x30, 0x39];
         self.write(&data);
+
+        self.read(1);
     }
 
     pub fn turn_off(&mut self) {
         let data = [0x30, 0x37, 0x36];
         self.write(&data);
+
+        self.read(1);
     }
 
     pub fn status(&mut self) -> Status {
@@ -105,7 +121,7 @@ impl Serial {
 
         let status = Status {
             main_volume: buf[3],
-            input: buf[7],
+            input: buf[7] + 1, // map 0->5 to 1->6
             standby: buf[20] == 0x01,
             input_1_effect: buf[13],
             input_2_effect: buf[11],

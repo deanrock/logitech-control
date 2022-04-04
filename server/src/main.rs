@@ -11,12 +11,13 @@ use axum::{
 };
 use futures::{sink::SinkExt, stream::StreamExt};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use serial::Serial;
 use std::{
-    collections::HashSet,
     fs::{self},
     sync::{Arc, Mutex},
 };
-use tokio::sync::broadcast;
+use tokio::sync::broadcast::{self, Sender};
 use tower_http::services::ServeDir;
 
 mod serial;
@@ -80,6 +81,13 @@ async fn websocket_handler(
     ws.on_upgrade(|socket| websocket(socket, state))
 }
 
+async fn report_status(serial: &Arc<Mutex<Serial>>, tx: &Sender<String>) {
+    let status = serial.lock().unwrap().status();
+
+    let data = serde_json::to_string(&status).unwrap();
+    tx.send(data).unwrap();
+}
+
 async fn websocket(stream: WebSocket, state: Arc<AppState>) {
     let (mut sender, mut receiver) = stream.split();
 
@@ -95,6 +103,8 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
 
     let tx = state.tx.clone();
     let serial = state.serial.clone();
+    
+    report_status(&serial, &tx).await;
 
     let mut recv_task = tokio::spawn(async move {
         // ping not handled here, since we are using `stream.split()` :/
@@ -109,6 +119,10 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
                     "mute" => serial.lock().unwrap().mute(),
                     &_ => assert!(false),
                 }
+
+                serial.lock().unwrap().status();
+
+                report_status(&serial, &tx).await;
 
                 println!("received {:?} from a websocket", message);
             } else {
