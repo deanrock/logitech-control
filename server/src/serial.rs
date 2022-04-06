@@ -65,7 +65,6 @@ impl Serial {
     }
 
     pub fn write(&mut self, buf: &[u8]) {
-        println!("WRITE: {:?}", buf);
         let written = self.port.write(buf).unwrap();
         assert!(buf.len() == written)
     }
@@ -97,14 +96,14 @@ impl Serial {
         let data = [0x11, 0x11, 0x14, 0x39, 0x38, 0x30, 0x39];
         self.write(&data);
 
-        self.read(1);
+        self.read(7);
     }
 
     pub fn turn_off(&mut self) {
         let data = [0x30, 0x37, 0x36];
         self.write(&data);
 
-        self.read(1);
+        self.read(3);
     }
 
     pub fn status(&mut self) -> Status {
