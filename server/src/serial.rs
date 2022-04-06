@@ -31,6 +31,13 @@ pub struct Status {
     input_6_effect: u8,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub enum Effect {
+    Effect3d = 0x14,
+    Effect4_1 = 0x15,
+    Effect2_1 = 0x16,
+    Disabled = 0x35,
+}
 pub struct Serial {
     port: Box<dyn SerialPort>,
 }
@@ -103,6 +110,32 @@ impl Serial {
     pub fn select_input(&mut self, input: u8) {
         let data = [0x08];
         self.write(&data);
+    }
+
+    pub fn select_effect(&mut self, effect: Effect) {
+        let u = effect as u8;
+        let data = [u];
+        self.write(&data);
+        assert!(self.read(1) == data);
+    }
+
+    pub fn configuration_reset(&mut self) {
+        let data = [
+            0xAA,
+            0x0E, // = type
+            0x03, // = length of remaining data (excluding checksum)
+            0x20, 0x00, 0x00,
+            0xCF, // = checksum
+            0xAA,
+            0x0A, // = type
+            0x14, // = length of remaining data (excluding checksum)
+            0x0A, 0x15, 0x15, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03, 0x00, 0x00, 0x00,
+            0x8C, // = checksum
+            0x36,
+        ];
+        self.write(&data);
+
+        assert!(self.read(6) == [0xAA, 0xFF, 0x01, 0x8A, 0x76, 0x36]);
     }
 
     pub fn turn_on(&mut self) {

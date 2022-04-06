@@ -20,6 +20,8 @@ use std::{
 use tokio::sync::broadcast::{self, Sender};
 use tower_http::services::ServeDir;
 
+use crate::serial::Effect;
+
 mod serial;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -131,6 +133,10 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
                     "turn_on" => serial.lock().unwrap().turn_on(),
                     "turn_off" => serial.lock().unwrap().turn_off(),
                     "mute" => serial.lock().unwrap().mute(),
+                    "effect_3d" => serial.lock().unwrap().select_effect(Effect::Effect3d),
+                    "effect_2_1" => serial.lock().unwrap().select_effect(Effect::Effect2_1),
+                    "effect_4_1" => serial.lock().unwrap().select_effect(Effect::Effect4_1),
+                    "effect_disabled" => serial.lock().unwrap().select_effect(Effect::Disabled),
                     &_ => assert!(false),
                 }
 
