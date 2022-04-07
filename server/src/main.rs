@@ -11,11 +11,10 @@ use axum::{
 };
 use futures::{sink::SinkExt, stream::StreamExt};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use serial::Serial;
 use std::{
     fs::{self},
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex}, thread,
 };
 use tokio::sync::broadcast::{self, Sender};
 use tower_http::services::ServeDir;
@@ -23,15 +22,12 @@ use tower_http::services::ServeDir;
 use crate::serial::Effect;
 
 mod serial;
+mod tray;
+mod state;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ActionMessage {
     action: Box<String>,
-}
-
-struct AppState {
-    serial: Arc<Mutex<serial::Serial>>,
-    tx: broadcast::Sender<String>,
 }
 
 fn get_serial() -> Option<serial::Serial> {
@@ -45,7 +41,7 @@ fn get_serial() -> Option<serial::Serial> {
     return None;
 }
 
-async fn server(app_state: Arc<AppState>) {
+async fn server(app_state: Arc<state::AppState>) {
     let app = Router::new()
         .nest(
             "/assets",
@@ -74,7 +70,13 @@ async fn main() {
     if let Some(serial) = get_serial() {
         let serial = Arc::new(Mutex::new(serial));
         let (tx, _rx) = broadcast::channel(100);
-        let app_state = Arc::new(AppState { serial, tx });
+        let app_state = Arc::new(state::AppState { serial, tx });
+
+        let c = app_state.clone();
+        thread::spawn(move || {
+            tray::tray(c);
+        });
+
         return server(app_state).await;
     }
 
@@ -92,7 +94,7 @@ async fn index() -> Html<String> {
 
 async fn websocket_handler(
     ws: WebSocketUpgrade,
-    Extension(state): Extension<Arc<AppState>>,
+    Extension(state): Extension<Arc<state::AppState>>,
 ) -> impl IntoResponse {
     ws.on_upgrade(|socket| websocket(socket, state))
 }
@@ -104,7 +106,7 @@ async fn report_status(serial: &Arc<Mutex<Serial>>, tx: &Sender<String>) {
     tx.send(data).unwrap();
 }
 
-async fn websocket(stream: WebSocket, state: Arc<AppState>) {
+async fn websocket(stream: WebSocket, state: Arc<state::AppState>) {
     let (mut sender, mut receiver) = stream.split();
 
     let mut rx = state.tx.subscribe();

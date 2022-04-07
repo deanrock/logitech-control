@@ -13,3 +13,7 @@ serialport = "4.0.1"
 tokio = { version = "1", features = ["full"] }
 tower-http = { version = "0.2.0", features = ["fs"] }
 futures = "0.3"
+tray-item = "0.7.0"
+
+[build-dependencies]
+windres = "0.2.2"

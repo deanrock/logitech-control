@@ -21,7 +21,7 @@ use serde::{Serialize, Deserialize};
 use serialport::{DataBits, Parity, SerialPort, StopBits, SerialPortInfo, UsbPortInfo};
 use std::{time::Duration};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Status {
     main_volume: u8,
     input: u8,
@@ -40,6 +40,7 @@ pub enum Effect {
 }
 pub struct Serial {
     port: Box<dyn SerialPort>,
+    cached_status: Option<Status>,
 }
 
 pub fn find_port() -> Option<String> {
@@ -69,6 +70,7 @@ impl Serial {
     pub fn new(port: String) -> Serial {
         Serial {
             port: connect(port),
+            cached_status: None,
         }
     }
 
@@ -152,6 +154,14 @@ impl Serial {
         self.read(3);
     }
 
+    pub fn cached_status(&mut self) -> Status {
+        if let Some(status) = self.cached_status {
+            return status
+        }
+
+        return self.status()
+    }
+
     pub fn status(&mut self) -> Status {
         let data = [0x34];
         self.write(&data);
@@ -172,6 +182,8 @@ impl Serial {
             input_2_effect: buf[11],
             input_6_effect: buf[12],
         };
+
+        self.cached_status = Some(status);
 
         return status
     }
