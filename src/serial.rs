@@ -1,22 +1,3 @@
-/*
-# turn on
-send([0x11, 0x11, 0x14, 0x39, 0x38, 0x30, 0x39])
-receive(7)
-
-# get status
-send([0x34])
-receive(16)
-
-# set input 1 (3.5mm 6 channel)
-send([0x09, 0x02, 0x14, 0x08])
-receive(4)
-
-send([0x09])
-receive(1)
-send([0x09])
-receive(1)
-*/
-
 use serde::{Deserialize, Serialize};
 use serialport::{DataBits, Parity, SerialPort, SerialPortInfo, StopBits, UsbPortInfo};
 use std::time::Duration;
@@ -49,15 +30,17 @@ pub fn find_port() -> Option<String> {
             port_name,
             port_type,
         } = item;
+        println!("{:?}", port_type.clone());
         if let serialport::SerialPortType::UsbPort(UsbPortInfo {
             vid: _,
             pid: _,
-            serial_number: _,
+            serial_number,
             manufacturer,
             product: _,
         }) = port_type
         {
-            if manufacturer == Some("FTDI".to_string()) {
+            
+            if manufacturer == Some("FTDI".to_string()) && serial_number == Some("A100JOB2A".to_string()) {
                 return Some(port_name);
             }
         }

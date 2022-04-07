@@ -1,31 +1,35 @@
-#[cfg(any(target_os = "macos", target_os = "windows"))]
-pub fn gui() -> wry::Result<()> {
-    use std::{
-        collections::HashMap,
-        fs::{canonicalize, read},
-        path::Path,
-    };
-    #[cfg(target_os = "macos")]
-    use wry::application::platform::macos::{
-        ActivationPolicy, CustomMenuItemExtMacOS, EventLoopExtMacOS, NativeImage,
-    };
-    #[cfg(target_os = "windows")]
-    use wry::application::platform::windows::WindowBuilderExtWindows;
-    use wry::{
-        application::{
-            accelerator::{Accelerator, SysMods},
-            event::{Event, StartCause, WindowEvent},
-            event_loop::{ControlFlow, EventLoop},
-            global_shortcut::ShortcutManager,
-            keyboard::KeyCode,
-            menu::{ContextMenu, MenuItemAttributes, MenuType},
-            system_tray::SystemTrayBuilder,
-            window::{WindowBuilder, WindowId},
-        },
-        http::ResponseBuilder,
-        webview::{WebView, WebViewBuilder},
-    };
+use crate::state::AppState;
 
+use std::{
+    collections::HashMap,
+    fs::{canonicalize, read},
+    path::Path,
+};
+use std::sync::Arc;
+
+#[cfg(target_os = "macos")]
+use wry::application::platform::macos::{
+    ActivationPolicy, CustomMenuItemExtMacOS, EventLoopExtMacOS, NativeImage,
+};
+#[cfg(target_os = "windows")]
+use wry::application::platform::windows::WindowBuilderExtWindows;
+use wry::{
+    application::{
+        accelerator::{Accelerator, SysMods},
+        event::{Event, StartCause, WindowEvent},
+        event_loop::{ControlFlow, EventLoop},
+        global_shortcut::ShortcutManager,
+        keyboard::KeyCode,
+        menu::{ContextMenu, MenuItemAttributes, MenuType},
+        system_tray::SystemTrayBuilder,
+        window::{WindowBuilder, WindowId},
+    },
+    http::ResponseBuilder,
+    webview::{WebView, WebViewBuilder},
+};
+
+#[cfg(any(target_os = "macos", target_os = "windows"))]
+pub fn gui(app_state: Arc<AppState>) -> wry::Result<()> {
     // Build our event loop
     #[cfg(target_os = "macos")]
     let mut event_loop = EventLoop::new();
@@ -76,7 +80,6 @@ pub fn gui() -> wry::Result<()> {
         .build(&event_loop)
         .unwrap();
 
-    // launch WRY process
     event_loop.run(move |event, event_loop, control_flow| {
         *control_flow = ControlFlow::Wait;
 

@@ -31,9 +31,10 @@ async fn main() {
     let app_state = Arc::new(state::AppState { serial, tx });
 
     let handle = Handle::current();
+    let cloned = app_state.clone();
     thread::spawn(move || {
-        handle.spawn(async move { server::server(app_state).await });
+        handle.spawn(async move { server::server(cloned).await });
     });
 
-    gui::gui().unwrap();
+    gui::gui(app_state).unwrap();
 }
