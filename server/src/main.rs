@@ -1,12 +1,16 @@
 use std::{
-    sync::{Arc, Mutex}, thread,
+    sync::{Arc, Mutex},
+    thread,
 };
-use tokio::{sync::broadcast::{self}, runtime::Handle};
+use tokio::{
+    runtime::Handle,
+    sync::broadcast::{self},
+};
 
-mod serial;
-mod state;
 mod gui;
+mod serial;
 mod server;
+mod state;
 
 fn get_serial() -> Option<serial::Serial> {
     if let Some(port) = serial::find_port() {
@@ -28,9 +32,7 @@ async fn main() {
 
         let handle = Handle::current();
         thread::spawn(move || {
-            handle.spawn(async move {
-                server::server(app_state).await
-            });
+            handle.spawn(async move { server::server(app_state).await });
         });
 
         gui::gui();

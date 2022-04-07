@@ -17,9 +17,9 @@ send([0x09])
 receive(1)
 */
 
-use serde::{Serialize, Deserialize};
-use serialport::{DataBits, Parity, SerialPort, StopBits, SerialPortInfo, UsbPortInfo};
-use std::{time::Duration};
+use serde::{Deserialize, Serialize};
+use serialport::{DataBits, Parity, SerialPort, SerialPortInfo, StopBits, UsbPortInfo};
+use std::time::Duration;
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Status {
@@ -45,15 +45,25 @@ pub struct Serial {
 
 pub fn find_port() -> Option<String> {
     for item in serialport::available_ports().unwrap() {
-        let SerialPortInfo { port_name, port_type } = item;
-        if let serialport::SerialPortType::UsbPort(UsbPortInfo { vid: _, pid: _, serial_number: _, manufacturer, product: _ }) = port_type {
+        let SerialPortInfo {
+            port_name,
+            port_type,
+        } = item;
+        if let serialport::SerialPortType::UsbPort(UsbPortInfo {
+            vid: _,
+            pid: _,
+            serial_number: _,
+            manufacturer,
+            product: _,
+        }) = port_type
+        {
             if manufacturer == Some("FTDI".to_string()) {
-                return Some(port_name)
+                return Some(port_name);
             }
         }
     }
 
-    return None
+    return None;
 }
 
 fn connect(port: String) -> Box<dyn SerialPort> {
@@ -83,7 +93,7 @@ impl Serial {
             start += received;
         }
 
-        return buf
+        return buf;
     }
 
     pub fn write(&mut self, buf: &[u8]) {
@@ -105,9 +115,7 @@ impl Serial {
         self.read(1);
     }
 
-    pub fn mute(&mut self) {
-
-    }
+    pub fn mute(&mut self) {}
 
     pub fn select_input(&mut self, input: u8) {
         let data = [0x08];
@@ -123,16 +131,13 @@ impl Serial {
 
     pub fn configuration_reset(&mut self) {
         let data = [
-            0xAA,
-            0x0E, // = type
+            0xAA, 0x0E, // = type
             0x03, // = length of remaining data (excluding checksum)
-            0x20, 0x00, 0x00,
-            0xCF, // = checksum
-            0xAA,
-            0x0A, // = type
+            0x20, 0x00, 0x00, 0xCF, // = checksum
+            0xAA, 0x0A, // = type
             0x14, // = length of remaining data (excluding checksum)
-            0x0A, 0x15, 0x15, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x06, 0x01, 0x03, 0x00, 0x00, 0x00,
-            0x8C, // = checksum
+            0x0A, 0x15, 0x15, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
+            0x06, 0x01, 0x03, 0x00, 0x00, 0x00, 0x8C, // = checksum
             0x36,
         ];
         self.write(&data);
@@ -156,10 +161,10 @@ impl Serial {
 
     pub fn cached_status(&mut self) -> Status {
         if let Some(status) = self.cached_status {
-            return status
+            return status;
         }
 
-        return self.status()
+        return self.status();
     }
 
     pub fn status(&mut self) -> Status {
@@ -185,6 +190,6 @@ impl Serial {
 
         self.cached_status = Some(status);
 
-        return status
+        return status;
     }
 }

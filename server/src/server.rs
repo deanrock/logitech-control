@@ -1,3 +1,4 @@
+use crate::{serial::Serial, state};
 use axum::{
     extract::{
         ws::{Message, WebSocket},
@@ -11,12 +12,11 @@ use axum::{
 };
 use futures::{sink::SinkExt, stream::StreamExt};
 use serde::{Deserialize, Serialize};
-use crate::{serial::Serial, state};
 use std::{
     fs::{self},
     sync::{Arc, Mutex},
 };
-use tokio::sync::broadcast::{Sender};
+use tokio::sync::broadcast::Sender;
 use tower_http::services::ServeDir;
 
 use crate::serial::Effect;
@@ -88,7 +88,7 @@ async fn websocket(stream: WebSocket, state: Arc<state::AppState>) {
 
     let tx = state.tx.clone();
     let serial = state.serial.clone();
-    
+
     report_status(&serial, &tx).await;
 
     let mut recv_task = tokio::spawn(async move {
