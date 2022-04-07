@@ -1,3 +1,4 @@
+use crate::debug::is_debug;
 use crate::state::AppState;
 
 use std::sync::Arc;
@@ -36,6 +37,25 @@ struct ActionMessage {
 
 enum WebViewEvents {
     Message(String),
+}
+
+fn get_index() -> String {
+    if is_debug() {
+        return String::from_utf8_lossy(
+            &read(canonicalize(format!("assets/{}", "index.html")).unwrap()).unwrap(),
+        )
+        .to_string();
+    } else {
+        return String::from_utf8_lossy(include_bytes!("../assets/index.html")).to_string();
+    }
+}
+
+fn get_html() -> String {
+    let x = String::from_utf8_lossy(include_bytes!("../assets/pure-min.css")).to_string();
+    return get_index().replace(
+        "<!-- pure-min.css -->",
+        format!("<style>{}</style>", x).as_str(),
+    );
 }
 
 #[cfg(any(target_os = "macos", target_os = "windows"))]
@@ -142,21 +162,12 @@ pub fn gui(app_state: Arc<AppState>) -> wry::Result<()> {
                     .body(index_html.as_bytes().into())*/
 
                     let path = request.uri().replace("wry://", "");
-                    let filename = Path::new(&path).file_name().unwrap().to_str().unwrap();
-                    // Read the file content from file path
-                    let content = read(canonicalize(format!("assets/{}", filename))?)?;
-                    // Return asset contents and mime types based on file extentions
-                    // If you don't want to do this manually, there are some crates for you.
-                    // Such as `infer` and `mime_guess`.
-                    let (data, meta) = if path.ends_with(".html") {
-                        (content, "text/html")
-                    } else if path.ends_with(".js") {
-                        (content, "text/javascript")
-                    } else if path.ends_with(".css") {
-                        (content, "text/css")
-                    } else if path.ends_with(".png") {
-                        (content, "image/png")
+                    let (data, meta) = if path == "assets/index.html" {
+                        (get_html().as_bytes().to_vec(), "text/html")
+                    } else if path == "assets/favicon.ico" {
+                        ("{}".as_bytes().to_vec(), "text/html")
                     } else {
+                        println!("{}", path);
                         unimplemented!();
                     };
 

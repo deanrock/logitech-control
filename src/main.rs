@@ -1,5 +1,8 @@
+#![windows_subsystem = "windows"]
+
 use std::sync::{Arc, Mutex};
 
+mod debug;
 mod gui;
 mod serial;
 mod state;
