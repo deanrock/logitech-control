@@ -27,5 +27,6 @@ jobs:
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
+        tag_name: master
         files: |
           target/release/logitech-server*
