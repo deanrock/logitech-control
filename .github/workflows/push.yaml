@@ -20,5 +20,12 @@ jobs:
 
     - name: Run build
       run: cargo build --release
+
     - name: Run tests
       run: cargo test --verbose
+
+    - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            target/release/logitech-server*

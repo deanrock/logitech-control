@@ -5,7 +5,6 @@ use std::sync::Arc;
 use std::{
     collections::HashMap,
     fs::{canonicalize, read},
-    path::Path,
 };
 
 use serde::{Deserialize, Serialize};
