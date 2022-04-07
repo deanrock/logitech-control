@@ -25,8 +25,8 @@ jobs:
       run: cargo test --verbose
 
     - name: Set outputs
-        id: vars
-        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+      id: vars
+      run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
 
     - name: Release
       uses: softprops/action-gh-release@v1
