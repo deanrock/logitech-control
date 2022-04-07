@@ -24,9 +24,14 @@ jobs:
     - name: Run tests
       run: cargo test --verbose
 
+    - name: Set outputs
+        id: vars
+        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: master
+        tag_name: master-${{ steps.vars.outputs.sha_short }}
         files: |
-          target/release/logitech-server*
+          target/release/logitech-server
+          target/release/logitech-server.exe
