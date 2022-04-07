@@ -42,11 +42,6 @@
 
 <body>
     <script type="text/javascript">
-        function send(data) {
-            {
-                socket.send(JSON.stringify(data));
-            }
-        }
         function action(name) {
             window.ipc.postMessage(JSON.stringify({
                 "action": name,
