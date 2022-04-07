@@ -25,18 +25,15 @@ fn get_serial() -> Option<serial::Serial> {
 
 #[tokio::main]
 async fn main() {
-    if let Some(serial) = get_serial() {
-        let serial = Arc::new(Mutex::new(serial));
-        let (tx, _rx) = broadcast::channel(100);
-        let app_state = Arc::new(state::AppState { serial, tx });
+    let serial = get_serial().unwrap();
+    let serial = Arc::new(Mutex::new(serial));
+    let (tx, _rx) = broadcast::channel(100);
+    let app_state = Arc::new(state::AppState { serial, tx });
 
-        let handle = Handle::current();
-        thread::spawn(move || {
-            handle.spawn(async move { server::server(app_state).await });
-        });
+    let handle = Handle::current();
+    thread::spawn(move || {
+        handle.spawn(async move { server::server(app_state).await });
+    });
 
-        gui::gui();
-    }
-
-    assert!(false, "Cannot find serial device!");
+    gui::gui().unwrap();
 }

@@ -6,18 +6,14 @@ use axum::{
     },
     handler::Handler,
     http::StatusCode,
-    response::{Html, IntoResponse},
-    routing::{get, get_service},
+    response::IntoResponse,
+    routing::get,
     Extension, Router,
 };
 use futures::{sink::SinkExt, stream::StreamExt};
 use serde::{Deserialize, Serialize};
-use std::{
-    fs::{self},
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 use tokio::sync::broadcast::Sender;
-use tower_http::services::ServeDir;
 
 use crate::serial::Effect;
 
@@ -28,18 +24,6 @@ struct ActionMessage {
 
 pub async fn server(app_state: Arc<state::AppState>) {
     let app = Router::new()
-        .nest(
-            "/assets",
-            get_service(ServeDir::new("./assets")).handle_error(
-                |error: std::io::Error| async move {
-                    (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Unhandled internal error: {}", error),
-                    )
-                },
-            ),
-        )
-        .route("/", get(index))
         .route("/ws", get(websocket_handler))
         .fallback(handler_404.into_service())
         .layer(Extension(app_state));
@@ -52,11 +36,6 @@ pub async fn server(app_state: Arc<state::AppState>) {
 
 async fn handler_404() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "404 not found")
-}
-
-async fn index() -> Html<String> {
-    let contents = fs::read_to_string("./assets/index.html").unwrap();
-    Html(contents)
 }
 
 async fn websocket_handler(

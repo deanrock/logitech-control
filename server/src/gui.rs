@@ -1,14 +1,14 @@
-#[cfg(any(target_os = "macos", target_os = "windows", target_os = "linux"))]
+#[cfg(any(target_os = "macos", target_os = "windows"))]
 pub fn gui() -> wry::Result<()> {
-    use std::collections::HashMap;
-    #[cfg(target_os = "linux")]
-    use std::path::Path;
+    use std::{
+        collections::HashMap,
+        fs::{canonicalize, read},
+        path::Path,
+    };
     #[cfg(target_os = "macos")]
     use wry::application::platform::macos::{
         ActivationPolicy, CustomMenuItemExtMacOS, EventLoopExtMacOS, NativeImage,
     };
-    #[cfg(target_os = "linux")]
-    use wry::application::platform::unix::WindowBuilderExtUnix;
     #[cfg(target_os = "windows")]
     use wry::application::platform::windows::WindowBuilderExtWindows;
     use wry::{
@@ -25,20 +25,6 @@ pub fn gui() -> wry::Result<()> {
         http::ResponseBuilder,
         webview::{WebView, WebViewBuilder},
     };
-
-    let index_html = r#"
-  <!DOCTYPE html>
-  <html lang="en">
-    <head>
-      <meta charset="UTF-8" />
-      <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    </head>
-    <body>
-      <h1>Welcome to WRY!</h1>
-      <textarea style="width: 90vw; height: 30vh;"></textarea>
-    </body>
-  </html>"#;
 
     // Build our event loop
     #[cfg(target_os = "macos")]
@@ -114,18 +100,39 @@ pub fn gui() -> wry::Result<()> {
             #[cfg(target_os = "macos")]
             let window_builder = WindowBuilder::new();
 
-            let window = window_builder.build(event_loop).unwrap();
+            let window = window_builder.with_title("Logitech Control").build(event_loop).unwrap();
 
             let id = window.id();
 
             let webview = WebViewBuilder::new(window)
                 .unwrap()
-                .with_custom_protocol("wry.dev".into(), move |_request| {
-                    ResponseBuilder::new()
-                        .mimetype("text/html")
-                        .body(index_html.as_bytes().into())
+                .with_custom_protocol("wry".into(), move |request| {
+                    /*ResponseBuilder::new()
+                    .mimetype("text/html")
+                    .body(index_html.as_bytes().into())*/
+
+                    let path = request.uri().replace("wry://", "");
+                    let filename = Path::new(&path).file_name().unwrap().to_str().unwrap();
+                    // Read the file content from file path
+                    let content = read(canonicalize(format!("assets/{}", filename))?)?;
+                    // Return asset contents and mime types based on file extentions
+                    // If you don't want to do this manually, there are some crates for you.
+                    // Such as `infer` and `mime_guess`.
+                    let (data, meta) = if path.ends_with(".html") {
+                        (content, "text/html")
+                    } else if path.ends_with(".js") {
+                        (content, "text/javascript")
+                    } else if path.ends_with(".css") {
+                        (content, "text/css")
+                    } else if path.ends_with(".png") {
+                        (content, "image/png")
+                    } else {
+                        unimplemented!();
+                    };
+
+                    ResponseBuilder::new().mimetype(meta).body(data)
                 })
-                .with_url("wry.dev://")
+                .with_url("wry://assets/index.html")
                 .unwrap()
                 .build()
                 .unwrap();
@@ -172,6 +179,13 @@ pub fn gui() -> wry::Result<()> {
                 #[cfg(target_os = "macos")]
                 open_new_window.set_native_image(NativeImage::StatusAvailable);
             }
+            Event::WindowEvent {
+                event: WindowEvent::Resized(_),
+                window_id,
+                ..
+            } => {
+                let _ = webviews[&window_id].resize();
+            },
             // on Windows, habitually, we show the Window with left click
             // and the menu is shown on right click
             #[cfg(target_os = "windows")]
