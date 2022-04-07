@@ -9,10 +9,15 @@ jobs:
         rust: [stable]
 
     steps:
-    - uses: hecrj/setup-rust-action@v1
+    - uses: actions/checkout@v2
+
+    - uses: actions-rs/toolchain@v1
       with:
-        rust-version: ${{ matrix.rust }}
-    - uses: actions/checkout@master
+        profile: minimal
+        toolchain: ${{ matrix.rust }}
+
+    - uses: Swatinem/rust-cache@v1
+
     - name: Run build
       run: cargo build --release
     - name: Run tests
