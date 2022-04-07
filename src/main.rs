@@ -1,15 +1,7 @@
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-};
-use tokio::{
-    runtime::Handle,
-    sync::broadcast::{self},
-};
+use std::sync::{Arc, Mutex};
 
 mod gui;
 mod serial;
-mod server;
 mod state;
 
 fn get_serial() -> Option<serial::Serial> {
@@ -23,18 +15,10 @@ fn get_serial() -> Option<serial::Serial> {
     return None;
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let serial = get_serial().unwrap();
     let serial = Arc::new(Mutex::new(serial));
-    let (tx, _rx) = broadcast::channel(100);
-    let app_state = Arc::new(state::AppState { serial, tx });
-
-    let handle = Handle::current();
-    let cloned = app_state.clone();
-    thread::spawn(move || {
-        handle.spawn(async move { server::server(cloned).await });
-    });
+    let app_state = Arc::new(state::AppState { serial });
 
     gui::gui(app_state).unwrap();
 }

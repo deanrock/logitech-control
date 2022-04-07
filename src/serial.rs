@@ -39,8 +39,9 @@ pub fn find_port() -> Option<String> {
             product: _,
         }) = port_type
         {
-            
-            if manufacturer == Some("FTDI".to_string()) && serial_number == Some("A100JOB2A".to_string()) {
+            if manufacturer == Some("FTDI".to_string())
+                && serial_number == Some("A100JOB2A".to_string())
+            {
                 return Some(port_name);
             }
         }

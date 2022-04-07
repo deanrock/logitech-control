@@ -1,12 +1,13 @@
 use crate::state::AppState;
 
+use std::sync::Arc;
 use std::{
     collections::HashMap,
     fs::{canonicalize, read},
     path::Path,
 };
-use std::sync::Arc;
 
+use serde::{Deserialize, Serialize};
 #[cfg(target_os = "macos")]
 use wry::application::platform::macos::{
     ActivationPolicy, CustomMenuItemExtMacOS, EventLoopExtMacOS, NativeImage,
@@ -28,14 +29,23 @@ use wry::{
     webview::{WebView, WebViewBuilder},
 };
 
+#[derive(Serialize, Deserialize, Debug)]
+struct ActionMessage {
+    action: Box<String>,
+}
+
+enum WebViewEvents {
+    Message(String),
+}
+
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 pub fn gui(app_state: Arc<AppState>) -> wry::Result<()> {
     // Build our event loop
     #[cfg(target_os = "macos")]
-    let mut event_loop = EventLoop::new();
+    let mut event_loop = EventLoop::<WebViewEvents>::with_user_event();
 
     #[cfg(not(target_os = "macos"))]
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::<WebViewEvents>::with_user_event();
 
     // launch macos app without menu and without dock icon
     // should be set at launch
@@ -73,12 +83,25 @@ pub fn gui(app_state: Arc<AppState>) -> wry::Result<()> {
     #[cfg(target_os = "windows")]
     let new_icon = include_bytes!("../assets/icon_blue.ico").to_vec();
     // macOS require Vec<u8> PNG file
+
+    use tao::window::Window;
+
+    use crate::serial::Effect;
     #[cfg(target_os = "macos")]
     let new_icon = include_bytes!("../assets/icon_dark.png").to_vec();
 
     let mut system_tray = SystemTrayBuilder::new(icon.clone(), Some(tray_menu))
         .build(&event_loop)
         .unwrap();
+
+    let proxy = event_loop.create_proxy();
+
+    let serial = app_state.serial.clone();
+
+    let handler = move |_: &Window, req: String| {
+        println!("{}", req);
+        proxy.send_event(WebViewEvents::Message(req));
+    };
 
     event_loop.run(move |event, event_loop, control_flow| {
         *control_flow = ControlFlow::Wait;
@@ -103,12 +126,16 @@ pub fn gui(app_state: Arc<AppState>) -> wry::Result<()> {
             #[cfg(target_os = "macos")]
             let window_builder = WindowBuilder::new();
 
-            let window = window_builder.with_title("Logitech Control").build(event_loop).unwrap();
+            let window = window_builder
+                .with_title("Logitech Control")
+                .build(event_loop)
+                .unwrap();
 
             let id = window.id();
 
             let webview = WebViewBuilder::new(window)
                 .unwrap()
+                .with_ipc_handler(handler.clone())
                 .with_custom_protocol("wry".into(), move |request| {
                     /*ResponseBuilder::new()
                     .mimetype("text/html")
@@ -188,7 +215,7 @@ pub fn gui(app_state: Arc<AppState>) -> wry::Result<()> {
                 ..
             } => {
                 let _ = webviews[&window_id].resize();
-            },
+            }
             // on Windows, habitually, we show the Window with left click
             // and the menu is shown on right click
             #[cfg(target_os = "windows")]
@@ -213,6 +240,30 @@ pub fn gui(app_state: Arc<AppState>) -> wry::Result<()> {
                     *control_flow = ControlFlow::Exit;
                 }
                 println!("Clicked on {:?}", menu_id);
+            }
+            Event::UserEvent(WebViewEvents::Message(req)) => {
+                let message: ActionMessage = serde_json::from_str(req.as_str()).unwrap();
+                match message.action.as_str() {
+                    "volume_up" => serial.lock().unwrap().volume_up(),
+                    "volume_down" => serial.lock().unwrap().volume_down(),
+                    "turn_on" => serial.lock().unwrap().turn_on(),
+                    "turn_off" => serial.lock().unwrap().turn_off(),
+                    "mute" => serial.lock().unwrap().mute(),
+                    "effect_3d" => serial.lock().unwrap().select_effect(Effect::Effect3d),
+                    "effect_2_1" => serial.lock().unwrap().select_effect(Effect::Effect2_1),
+                    "effect_4_1" => serial.lock().unwrap().select_effect(Effect::Effect4_1),
+                    "effect_disabled" => serial.lock().unwrap().select_effect(Effect::Disabled),
+                    &_ => assert!(false),
+                }
+
+                let status = serial.lock().unwrap().status();
+                let data = serde_json::to_string(&status).unwrap();
+
+                for window in webviews.values() {
+                    window
+                        .evaluate_script(format!("status('{}')", data).as_str())
+                        .unwrap();
+                }
             }
             // catch global shortcut event and open window
             Event::GlobalShortcutEvent(hotkey_id) if hotkey_id == my_accelerator.clone().id() => {

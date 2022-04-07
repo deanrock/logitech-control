@@ -38,26 +38,22 @@
             /* this is a light blue */
         }
     </style>
-    <script src="reconnecting-websocket.js"></script>
 </head>
 
 <body>
     <script type="text/javascript">
-        var socket = new ReconnectingWebSocket("ws://localhost:8000/ws");
         function send(data) {
             {
                 socket.send(JSON.stringify(data));
             }
         }
         function action(name) {
-            send({
-                'action': name,
-            });
+            window.ipc.postMessage(JSON.stringify({
+                "action": name,
+            }))
         }
-        socket.onmessage = function (event) {
-            {
-                document.getElementById('result').innerHTML += event.data + '<br />';
-            }
+        function status(data) {
+            document.getElementById('result').innerHTML += data + '<br />';
         }
     </script>
     <div class="pure-g">
