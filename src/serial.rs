@@ -19,6 +19,12 @@ pub enum Effect {
     Effect2_1 = 0x16,
     Disabled = 0x35,
 }
+
+pub enum Input {
+    Input3_5mm = 0x02,
+    InputRCA = 0x05,
+}
+
 pub struct Serial {
     port: Box<dyn SerialPort>,
     cached_status: Option<Status>,
@@ -101,9 +107,11 @@ impl Serial {
 
     pub fn mute(&mut self) {}
 
-    pub fn select_input(&mut self, input: u8) {
-        let data = [0x08];
-        self.write(&data);
+    pub fn select_input(&mut self, input: Input) {
+        let effect = Effect::Disabled as u8;
+        let input = input as u8;
+        self.write(&[0x09, input, effect, 0x08]);
+        assert!(self.read(4) == [0x09, input, effect, 0x08]);
     }
 
     pub fn select_effect(&mut self, effect: Effect) {

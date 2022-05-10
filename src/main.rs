@@ -1,6 +1,8 @@
-#![windows_subsystem = "windows"]
+//#![windows_subsystem = "windows"]
 
 use std::sync::{Arc, Mutex};
+
+use serial::Input;
 
 mod debug;
 mod gui;
@@ -21,6 +23,12 @@ fn get_serial() -> Option<serial::Serial> {
 fn main() {
     let serial = get_serial().unwrap();
     let serial = Arc::new(Mutex::new(serial));
+    serial
+        .clone()
+        .lock()
+        .unwrap()
+        .select_input(Input::Input3_5mm);
+
     let app_state = Arc::new(state::AppState { serial });
 
     gui::gui(app_state).unwrap();
