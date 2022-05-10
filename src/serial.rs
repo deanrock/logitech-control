@@ -151,6 +151,14 @@ impl Serial {
         return self.status();
     }
 
+    // Console sends this every 60 seconds, to ensure amplifier doesn't go to standby mode.
+    // Non-silent audio being played also resets amplifier timer.
+    // Amplifier goes to standby mode after 2 hours of no resets.
+    pub fn reset_idle_timeout(&mut self) {
+        self.write(&[0x30]);
+        assert!(self.read(1) == [0x30]);
+    }
+
     pub fn status(&mut self) -> Status {
         let data = [0x34];
         self.write(&data);
